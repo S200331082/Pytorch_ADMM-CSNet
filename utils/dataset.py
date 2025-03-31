@@ -15,9 +15,9 @@ class DataSet(data.Dataset):
         imgs = os.listdir(dir)
         imgs.sort()
         self.imgs = [os.path.join(dir, img) for img in imgs]
-        self.num = [re.sub("\D", "", img) for img in imgs]
+        self.num = [re.sub("\D", "", img) for img in imgs] # 正则匹配数字01,02,...,99
 
-    def __getitem__(self, index):
+    def __getitem__(self, index): # magic method，实现该方法后读取对象[index]就能获取label和num
         num = self.num[index]
         img_path = self.imgs[index]
         data = loadmat(img_path)
@@ -31,7 +31,7 @@ class DataSet(data.Dataset):
         label = torch.complex(label_real, label_imag)
         return label, num
 
-    def __len__(self):
+    def __len__(self): # 定义对象的长度方法
         return len(self.imgs)
 
 

@@ -36,7 +36,7 @@ if __name__ == '__main__':
     parser.add_argument('--data_dir', default='data/', type=str,
                         help='directory of data')
     parser.add_argument('--batch_size', default=1, type=int, help='batch size')
-    parser.add_argument('--num_epoch', default=1000, type=int, help='number of epochs')
+    parser.add_argument('--num_epoch', default=10, type=int, help='number of epochs')
     parser.add_argument('--outf', type=str, default='logs_csnet', help='path of log files')
     args = parser.parse_args()
 
@@ -76,7 +76,7 @@ if __name__ == '__main__':
     # ADMM-CSNET model
     ###############################################################################
     model = ADMMCSNetLayer(mask).cuda()
-
+    print(model)
     ###############################################################################
     # Adam optimizer
     ###############################################################################

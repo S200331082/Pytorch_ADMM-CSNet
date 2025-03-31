@@ -80,7 +80,7 @@ class ADMMCSNetLayer(nn.Module):
         return x
 
 
-# reconstruction original layers
+# reconstruction original layers: x^(1) = (Φ^H * Φ + ρ^(1) * I) * (Φ^H * y) , without β and z because original stage.
 class ReconstructionOriginalLayer(nn.Module):
     def __init__(self, rho, mask):
         super(ReconstructionOriginalLayer,self).__init__()
@@ -91,12 +91,12 @@ class ReconstructionOriginalLayer(nn.Module):
         mask = self.mask
         denom = torch.add(mask.cuda(), self.rho)
         a = 1e-6
-        value = torch.full(denom.size(), a).cuda()
+        value = torch.full(denom.size(), a).cuda() # in case divide 0 in matrix
         denom = torch.where(denom == 0, value, denom)
-        orig_output1 = torch.div(1, denom)
+        orig_output1 = torch.div(1, denom) # inversion operation
 
         orig_output2 = torch.mul(x, orig_output1)
-        orig_output3 = torch.fft.ifft2(orig_output2)
+        orig_output3 = torch.fft.ifft2(orig_output2) # recover into img domain for conv operation.
         # define data dict
         cs_data = dict()
         cs_data['input'] = x
@@ -116,7 +116,7 @@ class ReconstructionUpdateLayer(nn.Module):
         multiple_output = x['multi_output']
         input = x['input']
         mask = self.mask
-        number = torch.add(input, self.rho * torch.fft.fft2(torch.sub(minus_output, multiple_output)))
+        number = torch.add(input, self.rho * torch.fft.fft2(torch.sub(minus_output, multiple_output))) # input x is img domain, so ρ^(n) * (z^(n-1) - β^(n-1)) in Eq.(18) must ifft to img domain.
         denom = torch.add(mask.cuda(), self.rho)
         a = 1e-6
         value = torch.full(denom.size(), a).cuda()
@@ -128,7 +128,7 @@ class ReconstructionUpdateLayer(nn.Module):
         return x
 
 
-# reconstruction middle layers
+# reconstruction final layers
 class ReconstructionFinalLayer(nn.Module):
     def __init__(self, rho, mask):
         super(ReconstructionFinalLayer, self).__init__()
@@ -156,7 +156,7 @@ class ReconstructionFinalLayer(nn.Module):
 class MultipleOriginalLayer(nn.Module):
     def __init__(self,gamma):
         super(MultipleOriginalLayer,self).__init__()
-        self.gamma = gamma
+        self.gamma = gamma # actually is η
 
     def forward(self,x):
         org_output = x['conv1_input']
@@ -173,7 +173,7 @@ class MultipleUpdateLayer(nn.Module):
         self.gamma = gamma
 
     def forward(self, x):
-        multiple_output = x['multi_output']
+        multiple_output = x['multi_output'] # from last multiple layer's output
         re_mid_output = x['re_mid_output']
         minus_output = x['minus_output']
         output= torch.add(multiple_output,torch.mul(self.gamma,torch.sub(re_mid_output , minus_output)))
@@ -181,7 +181,7 @@ class MultipleUpdateLayer(nn.Module):
         return x
 
 
-# convolution layer
+# convolution layer1
 class ConvolutionLayer1(nn.Module):
     def __init__(self, in_channels: int, out_channels: int,kernel_size:int):
         super(ConvolutionLayer1,self).__init__()
@@ -198,7 +198,7 @@ class ConvolutionLayer1(nn.Module):
         return x
 
 
-# convolution layer
+# convolution layer2
 class ConvolutionLayer2(nn.Module):
     def __init__(self, in_channels: int, out_channels: int, kernel_size: int):
         super(ConvolutionLayer2, self).__init__()
@@ -213,11 +213,11 @@ class ConvolutionLayer2(nn.Module):
         imag = self.conv(nonlinear_output.imag)
         output = torch.complex(real, imag)
 
-        x['conv2_output'] = output
+        x['conv2_output'] = output # exactly is z^(n)
         return x
 
 
-# nonlinear layer
+# nonlinear layer: lead ino nonlinear element, i.e, activate function
 class NonlinearLayer(nn.Module):
     def __init__(self):
         super(NonlinearLayer,self).__init__()
